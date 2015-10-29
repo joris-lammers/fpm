@@ -25,6 +25,11 @@ class FPM::Package::Virtualenv < FPM::Package
   option "--other-files-dir", "DIRECTORY", "Optionally, the contents of the " \
   "specified directory may be added to the package. This is useful if the " \
   "virtualenv needs configuration files, etc.", :default => nil
+  
+  option "--system-site-packages", :flag, "Give virtualenv access to system site-packages?", 
+    :default => false
+  option "--keep-compiled", :flag, "Keep Python compiled files?",
+    :default => false
 
   private
 
@@ -62,7 +67,11 @@ class FPM::Package::Virtualenv < FPM::Package
 
     ::FileUtils.mkdir_p(virtualenv_build_folder)
 
-    safesystem("virtualenv", virtualenv_build_folder)
+    virtual_env_args = [ virtualenv_build_folder ]
+    if self.attributes[:virtualenv_system_site_packages?]
+      virtual_env_args << "--system-site-packages"
+    end
+    safesystem("virtualenv", *virtual_env_args)
     pip_exe = File.join(virtualenv_build_folder, "bin", "pip")
     python_exe = File.join(virtualenv_build_folder, "bin", "python")
 
@@ -102,7 +111,7 @@ class FPM::Package::Virtualenv < FPM::Package
       end
     end
 
-    remove_python_compiled_files virtualenv_build_folder
+    remove_python_compiled_files virtualenv_build_folder unless self.attributes[:virtualenv_keep_compiled?]
 
     # use dir to set stuff up properly, mainly so I don't have to reimplement
     # the chdir/prefix stuff special for tar.
